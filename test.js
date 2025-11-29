@@ -53,6 +53,12 @@ function initializeDOMElements() {
                 addPastCompletion(habitId);
                 return;
             }
+            const undoBtn = e.target.closest('.undo-btn');
+            if (undoBtn) {
+                const habitId = Number(undoBtn.dataset.id);
+                undoCompletion(habitId);
+                return;
+            }
         });
     }
 }
@@ -82,6 +88,7 @@ function renderHabits() {
             </div>
             <div class="habit-actions">
                 <button class="log-btn" data-id="${habit.id}" ${isCompletedToday ? 'disabled' : ''}>${isCompletedToday ? '✓ Completed Today' : 'Log Today'}</button>
+                ${isCompletedToday ? `<button class="undo-btn" data-id="${habit.id}">Undo</button>` : ''}
                 <button class="past-btn" data-id="${habit.id}">Add Past Date</button>
                 <button class="delete-btn" data-id="${habit.id}">Delete</button>
             </div>
@@ -99,6 +106,24 @@ function logCompletion(habitId) {
     habit.completions.push(today);
     persist();
     renderHabits();
+}
+
+// Undo today's completion for a habit (useful to fix misclicks)
+function undoCompletion(habitId) {
+    const habit = habits.find(h => h.id === habitId);
+    if (!habit) return;
+    const today = new Date().toISOString().split('T')[0];
+    const idx = habit.completions.indexOf(today);
+    if (idx === -1) {
+        // Nothing to undo
+        console.warn('No completion for today to undo for habit ID:', habitId);
+        return;
+    }
+    // Remove today's completion and update
+    habit.completions.splice(idx, 1);
+    persist();
+    renderHabits();
+    console.log('Undid today\'s completion for habit ID:', habitId);
 }
 
 // Delete habit by id
