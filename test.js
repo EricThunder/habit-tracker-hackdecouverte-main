@@ -91,7 +91,7 @@ function renderHabits() {
         habitDiv.innerHTML = `
             <div class="habit-info">
                 <h3>${habit.name}</h3>
-                <p>Completions: ${habit.completions.length} — Points: ${score.points} ⚪︎  Golden: ${score.golden} ✨  Streak: ${score.streak}</p>
+                <p>Completions: ${habit.completions.length} — Points: ${score.points} ⚪︎  Golden: ${score.golden} ✨</p>
             </div>
             <div class="habit-actions">
                 <button class="log-btn" data-id="${habit.id}" ${isCompletedToday ? 'disabled' : ''}>${isCompletedToday ? '✓ Completed Today' : 'Log Today'}</button>
@@ -121,6 +121,8 @@ function renderHabits() {
         habitDiv.appendChild(calendarWrapper);
         habitsContainer.appendChild(habitDiv);
     });
+    // Update the centralized points summary after rendering habits
+    renderPointsSummary();
 }
 
 // Return an array of date strings (YYYY-MM-DD) for the previous N days
@@ -137,10 +139,13 @@ function getLastNDays(n) {
 
 // Helper: check if dateB is the day after dateA (both YYYY-MM-DD strings)
 function isNextDay(dateA, dateB) {
-    const a = new Date(dateA + 'T00:00:00');
-    const b = new Date(dateB + 'T00:00:00');
-    const diff = (b - a) / (1000 * 60 * 60 * 24);
-    return diff === 1;
+    // Compare using UTC dates to avoid local-time and DST edge cases
+    // dateA and dateB are YYYY-MM-DD strings
+    const [yA, mA, dA] = dateA.split('-').map(Number);
+    const [yB, mB, dB] = dateB.split('-').map(Number);
+    const aUtc = Date.UTC(yA, mA - 1, dA);
+    const bUtc = Date.UTC(yB, mB - 1, dB);
+    return (bUtc - aUtc) === 24 * 60 * 60 * 1000;
 }
 
 // Compute total normal points, golden points and the current streak
@@ -149,7 +154,8 @@ function isNextDay(dateA, dateB) {
 // - When consecutive streak (length S) >= 2, the day gives extra normal points equal to S.
 // - If the streak reaches 7, the user receives 1 golden point and the streak resets; the 7th day still gives the 1 base normal point (no extra S points applied for the 7th day).
 function computeHabitScore(habit) {
-    const dates = (habit.completions || []).slice().sort();
+    // Sort completions by chronological order using actual Date values to be robust across months
+    const dates = (habit.completions || []).slice().sort((a, b) => new Date(a) - new Date(b));
     let points = 0;
     let golden = 0;
     let streak = 0; // streak while iterating
@@ -181,6 +187,36 @@ function computeHabitScore(habit) {
     // The 'current streak' that should be shown is the running streak after the latest date.
     // Note: our logic resets to 0 if the last processed date completed a 7-day streak; that's expected.
     return { points, golden, streak };
+}
+
+// Render a centralized points summary (totals + per-habit points)
+function renderPointsSummary() {
+    const container = document.getElementById('points-summary-content');
+    if (!container) return;
+    if (!habits || habits.length === 0) {
+        container.innerHTML = '<p style="color:#666;">No points yet — create a habit to start earning points.</p>';
+        return;
+    }
+
+    let totalPoints = 0;
+    let totalGolden = 0;
+    const rows = habits.map(h => {
+        const score = computeHabitScore(h);
+        totalPoints += score.points;
+        totalGolden += score.golden;
+        return `<div class="points-row"><strong>${escapeHtml(h.name)}</strong>: ${score.points} ⚪︎  / ${score.golden} ✨</div>`;
+    });
+
+    container.innerHTML = `
+        <div class="points-totals">Total: <strong>${totalPoints}</strong> ⚪︎ &nbsp; / &nbsp; <strong>${totalGolden}</strong> ✨</div>
+        <div class="points-per-habit">${rows.join('')}</div>
+    `;
+}
+
+// Small HTML escape for habit names when injecting into summary
+function escapeHtml(s) {
+    if (!s) return '';
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 // Toggle a completion for a specific date (if present => remove, otherwise add)
