@@ -1,28 +1,60 @@
 // Initialize habits from localStorage (fallback to empty array)
 let habits = JSON.parse(localStorage.getItem('habits')) || [];
 
-// Cache DOM elements (guard if missing)
-const form = document.getElementById('habit-form');
-const habitNameInput = document.getElementById('habit-name');
-const habitsContainer = document.getElementById('habits-container');
+// DOM element references (will be set after DOM loads)
+let form;
+let habitNameInput;
+let habitsContainer;
 
-// Safely bind form submission
-if (form) {
-    form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        if (!habitNameInput) return;
-        const habitName = habitNameInput.value.trim();
-        if (!habitName) return;
-        const newHabit = {
-            id: Date.now(), // numeric id
-            name: habitName,
-            completions: [] // date strings YYYY-MM-DD
-        };
-        habits.push(newHabit);
-        persist();
-        habitNameInput.value = '';
-        renderHabits();
-    });
+// Initialize DOM elements and set up event listeners
+function initializeDOMElements() {
+    form = document.getElementById('habit-form');
+    habitNameInput = document.getElementById('habit-name');
+    habitsContainer = document.getElementById('habits-container');
+    
+    // Safely bind form submission
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (!habitNameInput) return;
+            const habitName = habitNameInput.value.trim();
+            if (!habitName) return;
+            const newHabit = {
+                id: Date.now(), // numeric id
+                name: habitName,
+                completions: [] // date strings YYYY-MM-DD
+            };
+            habits.push(newHabit);
+            persist();
+            habitNameInput.value = '';
+            renderHabits();
+        });
+    }
+    
+    // Event delegation for log/delete actions
+    if (habitsContainer) {
+        habitsContainer.addEventListener('click', function (e) {
+            const deleteBtn = e.target.closest('.delete-btn');
+            if (deleteBtn) {
+                const habitId = Number(deleteBtn.dataset.id);
+                console.log('Delete button clicked for habit ID:', habitId);
+                deleteHabit(habitId);
+                return;
+            }
+            const logBtn = e.target.closest('.log-btn');
+            if (logBtn && !logBtn.disabled) {
+                const habitId = Number(logBtn.dataset.id);
+                logCompletion(habitId);
+                return;
+            }
+            const pastBtn = e.target.closest('.past-btn');
+            if (pastBtn) {
+                const habitId = Number(pastBtn.dataset.id);
+                addPastCompletion(habitId);
+                return;
+            }
+        });
+    }
 }
 
 // Persist habits to localStorage
@@ -58,28 +90,6 @@ function renderHabits() {
     });
 }
 
-// Event delegation for log/delete actions
-if (habitsContainer) {
-    habitsContainer.addEventListener('click', function (e) {
-        const deleteBtn = e.target.closest('.delete-btn');
-        if (deleteBtn) {
-            const habitId = Number(deleteBtn.dataset.id);
-            deleteHabit(habitId);
-            return;
-        }
-        const logBtn = e.target.closest('.log-btn');
-        if (logBtn && !logBtn.disabled) {
-            const habitId = Number(logBtn.dataset.id);
-            logCompletion(habitId);
-        }
-        const pastBtn = e.target.closest('.past-btn');
-        if (pastBtn) {
-            const habitId = Number(pastBtn.dataset.id);
-            addPastCompletion(habitId);
-        }
-    });
-}
-
 // Log completion for today
 function logCompletion(habitId) {
     const habit = habits.find(h => h.id === habitId);
@@ -93,19 +103,35 @@ function logCompletion(habitId) {
 
 // Delete habit by id
 function deleteHabit(habitId) {
+    console.log('deleteHabit called with ID:', habitId);
+    console.log('Current habits:', habits);
     const idx = habits.findIndex(h => h.id === habitId);
-    if (idx === -1) return;
-    if (!confirm('Delete this habit?')) return;
+    console.log('Found habit at index:', idx);
+    if (idx === -1) {
+        console.error('Habit not found:', habitId);
+        return;
+    }
+    if (!confirm('Delete this habit?')) {
+        console.log('User cancelled deletion');
+        return;
+    }
+    console.log('Deleting habit at index:', idx);
     habits.splice(idx, 1);
     persist();
     renderHabits();
+    console.log('Habit deleted successfully. Remaining habits:', habits);
 }
 
 // Add a past completion date
 function addPastCompletion(habitId) {
+    console.log('Adding past completion for habit:', habitId);
     const habit = habits.find(h => h.id === habitId);
-    if (!habit) return;
+    if (!habit) {
+        console.error('Habit not found:', habitId);
+        return;
+    }
     const input = prompt('Enter past completion date (YYYY-MM-DD):');
+    console.log('User input:', input);
     if (!input) return;
     const dateStr = input.trim();
     const validFormat = /^\d{4}-\d{2}-\d{2}$/.test(dateStr);
@@ -126,7 +152,11 @@ function addPastCompletion(habitId) {
     habit.completions.sort();
     persist();
     renderHabits();
+    console.log('Past completion added successfully');
 }
 
-// Initial render
-document.addEventListener('DOMContentLoaded', renderHabits);
+// Initial render - wait for DOM to be ready
+document.addEventListener('DOMContentLoaded', function() {
+    initializeDOMElements();
+    renderHabits();
+});
