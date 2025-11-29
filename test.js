@@ -91,7 +91,7 @@ function renderHabits() {
         habitDiv.innerHTML = `
             <div class="habit-info">
                 <h3>${habit.name}</h3>
-                <p>Completions: ${habit.completions.length} — Points: ${score.points} ⚪︎  Golden: ${score.golden} ✨</p>
+                <p>Completions: ${habit.completions.length}</p>
             </div>
             <div class="habit-actions">
                 <button class="log-btn" data-id="${habit.id}" ${isCompletedToday ? 'disabled' : ''}>${isCompletedToday ? '✓ Completed Today' : 'Log Today'}</button>
@@ -204,7 +204,7 @@ function renderPointsSummary() {
         const score = computeHabitScore(h);
         totalPoints += score.points;
         totalGolden += score.golden;
-        return `<div class="points-row"><strong>${escapeHtml(h.name)}</strong>: ${score.points} ⚪︎  / ${score.golden} ✨</div>`;
+        return `<div class="points-row"><strong>${escapeHtml(h.name)}</strong>: ${score.points} ⚪  / ${score.golden} ✨</div>`;
     });
 
     container.innerHTML = `
