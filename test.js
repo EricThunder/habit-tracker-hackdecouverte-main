@@ -86,7 +86,7 @@ function renderHabits() {
         habitDiv.innerHTML = `
             <div class="habit-info">
                 <h3>${habit.name}</h3>
-                <p>Completions: ${habit.completions.length}</p>
+                <!-- <p>Completions: ${habit.completions.length}</p> -->
                 <div class="habit-score">Points: <strong>${score.points}</strong> ⚪︎ &nbsp;/&nbsp; Golden: <strong>${score.golden}</strong> ✨</div>
                 <div class="habit-current">Current streak: <strong>${score.current || 0}</strong> days</div>
                 <div class="habit-longest">Longest streak: <strong>${score.longest || 0}</strong> days</div>

@@ -13,7 +13,10 @@
 <main id="main">
     <header id="header">
         <h1 id="title">Habit Tracker</h1>
-        <p id="description">This is a simple website to help you stay on track of daily tasks/habits</p>
+        <details class="toggle-box" aria-labelledby="description-label">
+            <summary id="description-label">About the point system (click to expand)</summary>
+            <p id="description">The point system is very simple. Each task completed in one day amount to one point. For example, if you go for a run on Monday, you get one point. If you go for run-on  Monday and Tuesday you get two points. Every seven days that you keep a streak, you get a golden point, which also triggers a confetti effect, giving a game sensation to the website. In other words, if you keep your streak for 7 days, you'd get one golden point. If you keep your streak for another 7 days to have a streak of 14 days, you would get another golden point. It is very easily customizable as the user can enter any habit that they'd like to keep. Likewise, they can also remove any habit that they don't want to keep. There is an option to log a habit for the present day, but the user can also click a date on the calendar to log said date if they had forgot to log it on that date. There is a total amount of points and golden points in summary to give the user an encouraging sight (it's naturally rewarding for a person to see the fruits of their accomplishments). For every habit, there is a total of points of golden points as well as the current streak and the longest streak for that specific habit. The habits are listed neatly and also put in their own box for easy reading and reviewing.</p>
+        </details>
     </header>
 
     <!-- Points summary: central place showing all points / golden points -->
