@@ -47,16 +47,19 @@ function initializeDOMElements() {
                 logCompletion(habitId);
                 return;
             }
-            const pastBtn = e.target.closest('.past-btn');
-            if (pastBtn) {
-                const habitId = Number(pastBtn.dataset.id);
-                addPastCompletion(habitId);
-                return;
-            }
             const undoBtn = e.target.closest('.undo-btn');
             if (undoBtn) {
                 const habitId = Number(undoBtn.dataset.id);
                 undoCompletion(habitId);
+                return;
+            }
+            const calDay = e.target.closest('.cal-day');
+            if (calDay) {
+                const habitEl = e.target.closest('.habit-item');
+                if (!habitEl) return;
+                const habitId = Number(habitEl.dataset.id);
+                const dateStr = calDay.dataset.day;
+                toggleCompletionDate(habitId, dateStr);
                 return;
             }
         });
@@ -81,6 +84,8 @@ function renderHabits() {
         const isCompletedToday = habit.completions.includes(today);
         const habitDiv = document.createElement('div');
         habitDiv.className = 'habit-item';
+        // store id on the container to make event delegation easier
+        habitDiv.dataset.id = habit.id;
         habitDiv.innerHTML = `
             <div class="habit-info">
                 <h3>${habit.name}</h3>
@@ -89,12 +94,64 @@ function renderHabits() {
             <div class="habit-actions">
                 <button class="log-btn" data-id="${habit.id}" ${isCompletedToday ? 'disabled' : ''}>${isCompletedToday ? '✓ Completed Today' : 'Log Today'}</button>
                 ${isCompletedToday ? `<button class="undo-btn" data-id="${habit.id}">Undo</button>` : ''}
-                <button class="past-btn" data-id="${habit.id}">Add Past Date</button>
+
                 <button class="delete-btn" data-id="${habit.id}">Delete</button>
             </div>
         `;
+        // Add a compact calendar showing recent days and which ones are completed
+        const calendarWrapper = document.createElement('div');
+        calendarWrapper.className = 'completion-calendar-wrapper';
+        const days = getLastNDays(35); // show 35 days (~5 weeks)
+        const calendarEl = document.createElement('div');
+        calendarEl.className = 'completion-calendar';
+        days.forEach(d => {
+            const dayEl = document.createElement('div');
+            dayEl.className = 'cal-day';
+            if (habit.completions.includes(d)) dayEl.classList.add('completed');
+            dayEl.dataset.day = d;
+            // show short day of month
+            dayEl.innerText = d.slice(8); // last two chars: day
+            dayEl.title = d;
+            calendarEl.appendChild(dayEl);
+        });
+        calendarWrapper.appendChild(calendarEl);
+        calendarWrapper.insertAdjacentHTML('beforeend', '<div class="calendar-label">Last 35 days (click a date to toggle)</div>');
+        habitDiv.appendChild(calendarWrapper);
         habitsContainer.appendChild(habitDiv);
     });
+}
+
+// Return an array of date strings (YYYY-MM-DD) for the previous N days
+function getLastNDays(n) {
+    const days = [];
+    const today = new Date();
+    for (let i = n - 1; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        days.push(d.toISOString().split('T')[0]);
+    }
+    return days;
+}
+
+// Toggle a completion for a specific date (if present => remove, otherwise add)
+function toggleCompletionDate(habitId, dateStr) {
+    const habit = habits.find(h => h.id === habitId);
+    if (!habit) return;
+    const idx = habit.completions.indexOf(dateStr);
+    if (idx !== -1) {
+        // already present, ask to remove
+        // if (!confirm(`Remove completion for ${dateStr}?`)) return;
+        habit.completions.splice(idx, 1);
+        persist();
+        renderHabits();
+        return;
+    }
+    // not present -> confirm add
+    // if (!confirm(`Add completion for ${dateStr}?`)) return;
+    habit.completions.push(dateStr);
+    habit.completions.sort();
+    persist();
+    renderHabits();
 }
 
 // Log completion for today
@@ -147,38 +204,6 @@ function deleteHabit(habitId) {
     console.log('Habit deleted successfully. Remaining habits:', habits);
 }
 
-// Add a past completion date
-function addPastCompletion(habitId) {
-    console.log('Adding past completion for habit:', habitId);
-    const habit = habits.find(h => h.id === habitId);
-    if (!habit) {
-        console.error('Habit not found:', habitId);
-        return;
-    }
-    const input = prompt('Enter past completion date (YYYY-MM-DD):');
-    console.log('User input:', input);
-    if (!input) return;
-    const dateStr = input.trim();
-    const validFormat = /^\d{4}-\d{2}-\d{2}$/.test(dateStr);
-    if (!validFormat) {
-        alert('Invalid format. Use YYYY-MM-DD');
-        return;
-    }
-    const today = new Date().toISOString().split('T')[0];
-    if (dateStr > today) {
-        alert('Date cannot be in the future.');
-        return;
-    }
-    if (habit.completions.includes(dateStr)) {
-        alert('This date is already logged.');
-        return;
-    }
-    habit.completions.push(dateStr);
-    habit.completions.sort();
-    persist();
-    renderHabits();
-    console.log('Past completion added successfully');
-}
 
 // Initial render - wait for DOM to be ready
 document.addEventListener('DOMContentLoaded', function() {
