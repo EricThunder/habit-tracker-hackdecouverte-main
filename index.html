@@ -1,3 +1,4 @@
+<!-- DONE HTML BLA BLA BLA-->
 <!DOCTYPE html>
 <html lang="en">
 <link rel="stylesheet" href="styles.css">
@@ -7,26 +8,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Habit Tracker</title>
 </head>
+
+<!-- DONE GENERIC INFO-->
 <main id="main">
-    <h1 id="title">Habit Tracker</h1>
-    <p id="description">This is a simple website to track your habits</p>
+    <header>
+        <h1 id="title">Habit Tracker</h1>
+        <p id="description">This is a simple website to help you stay on track of recurring tasks/habits</p>
+    </header>
+
+
+<!-- DONE - ALLOW TO CREATE A TASK -->
     <section id="create-habit">
-        <h2>Create a task</h2>
-        <form id="create-habits">
-            <p>Create a task:</p>
-            <label for="name" id="na"><input id="name" type="text" placeholder="Shower" /></label>
+        <h2>Create a habit</h2>
+        <form id="habit-form">
+            <p>Create a habit/task that you would like to complete daily:</p>
+            <label for="create-habit" id="na"><input id="habit-name" type="text" placeholder="Shower" /></label>
+            <!-- <label for="dropdown"> Select your prefered freqency
+                <select id="dropdown">
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                </select>
+            </label> -->
+            <button type="submit" id="submit">Submit</button>
         </form>
     </section>
 
-
-
-
-
-    <section>
+<!-- SHOW THE LIST OF HABITS AND ALLOW TO EDIT THEM -->
+    <section id="habit-list">
+        <h2>Habit(s) list</h2>
+        <p>Review and edit you habits/completions</p>
 
     </section>
-    <form>
-        <!-- <input type="button" value="Hello" /> -->
-    </form>
-    
+
 </main> 
