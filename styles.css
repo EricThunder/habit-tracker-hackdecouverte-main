@@ -80,6 +80,22 @@ body {
     margin: 4px 0;
 }
 
+/* Confetti animation */
+.confetti-piece {
+    position: fixed;
+    width: 8px;
+    height: 12px;
+    opacity: 0.95;
+    z-index: 9999;
+    pointer-events: none;
+    will-change: transform, opacity;
+}
+
+@keyframes confetti-fall {
+    0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0.2; }
+}
+
 #habits-container {
     margin-top: 20px;
     display: flex;
@@ -120,6 +136,12 @@ body {
     margin-top: 8px;
     font-size: 0.9rem;
     color: #333;
+}
+
+.habit-current {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: #666;
 }
 
 .habit-actions {

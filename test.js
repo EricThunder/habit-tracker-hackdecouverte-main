@@ -88,6 +88,7 @@ function renderHabits() {
                 <h3>${habit.name}</h3>
                 <p>Completions: ${habit.completions.length}</p>
                 <div class="habit-score">Points: <strong>${score.points}</strong> ⚪︎ &nbsp;/&nbsp; Golden: <strong>${score.golden}</strong> ✨</div>
+                <div class="habit-current">Current streak: <strong>${score.current || 0}</strong> days</div>
             </div>
             <div class="habit-actions">
                 <button class="log-btn" data-id="${habit.id}" ${isCompletedToday ? 'disabled' : ''}>${isCompletedToday ? '✓ Completed Today' : 'Log Today'}</button>
@@ -184,9 +185,23 @@ function computeHabitScore(habit) {
         prev = d;
     }
 
-    // The 'current streak' that should be shown is the running streak after the latest date.
-    // Note: our logic resets to 0 if the last processed date completed a 7-day streak; that's expected.
-    return { points, golden, longest: longestRaw };
+    // Determine the current raw streak (consecutive days including today)
+    const today = new Date().toISOString().split('T')[0];
+    let currentRaw = 0;
+    // if there are no completions, current stays 0
+    const set = new Set(dates);
+    if (set.has(today)) {
+        // count backwards from today until a missing day
+        let d = new Date(today + 'T00:00:00');
+        while (true) {
+            const dateStr = d.toISOString().split('T')[0];
+            if (!set.has(dateStr)) break;
+            currentRaw += 1;
+            d.setDate(d.getDate() - 1);
+        }
+    }
+
+    return { points, golden, longest: longestRaw, current: currentRaw };
 }
 
 // Render a centralized points summary (totals + per-habit points)
@@ -208,10 +223,29 @@ function renderPointsSummary() {
         globalLongest = Math.max(globalLongest, score.longest || 0);
     });
 
+    const overallCurrent = computeOverallCurrentStreak();
     container.innerHTML = `
         <div class="points-totals">Total points: <strong>${totalPoints}</strong> ⚪︎ &nbsp; / &nbsp; Golden: <strong>${totalGolden}</strong> ✨</div>
+        <div class="points-totals">Current streak overall: <strong>${overallCurrent}</strong> days</div>
         <div class="points-totals">Longest streak overall: <strong>${globalLongest}</strong> days</div>
     `;
+}
+
+// Compute the overall current raw streak across all habits (consecutive days up to today where at least one completion exists)
+function computeOverallCurrentStreak() {
+    const allDates = new Set();
+    habits.forEach(h => (h.completions || []).forEach(d => allDates.add(d)));
+    if (allDates.size === 0) return 0;
+    const today = new Date().toISOString().split('T')[0];
+    let streak = 0;
+    let d = new Date(today + 'T00:00:00');
+    while (true) {
+        const dateStr = d.toISOString().split('T')[0];
+        if (!allDates.has(dateStr)) break;
+        streak += 1;
+        d.setDate(d.getDate() - 1);
+    }
+    return streak;
 }
 
 // Small HTML escape for habit names when injecting into summary
@@ -233,12 +267,42 @@ function toggleCompletionDate(habitId, dateStr) {
         renderHabits();
         return;
     }
-    // not present -> confirm add
-    // if (!confirm(`Add completion for ${dateStr}?`)) return;
+    // not present -> add, detect golden-award
+    const prevScore = computeHabitScore(habit).golden;
     habit.completions.push(dateStr);
     habit.completions.sort();
     persist();
     renderHabits();
+    const newScore = computeHabitScore(habit).golden;
+    if (newScore > prevScore) spawnConfetti();
+}
+
+// Spawn a short confetti animation on the page
+function spawnConfetti() {
+    const colors = ['#ff4d4f', '#faad14', '#52c41a', '#1890ff', '#eb2f96', '#13c2c2'];
+    const count = 36;
+    for (let i = 0; i < count; i++) {
+        const el = document.createElement('div');
+        el.className = 'confetti-piece';
+        const size = Math.floor(Math.random() * 10) + 6;
+        el.style.width = size + 'px';
+        el.style.height = Math.floor(size * 1.3) + 'px';
+        el.style.background = colors[Math.floor(Math.random() * colors.length)];
+        const left = Math.random() * 100;
+        el.style.left = left + 'vw';
+        el.style.top = '-10vh';
+        // random delay, duration
+        const duration = 2000 + Math.random() * 1200;
+        el.style.animation = `confetti-fall ${duration}ms cubic-bezier(.2,.7,.3,1)`;
+        el.style.opacity = '1';
+        // random rotation
+        el.style.transform = `rotate(${Math.random() * 360}deg)`;
+        document.body.appendChild(el);
+        // cleanup
+        setTimeout(() => {
+            el.remove();
+        }, duration + 100);
+    }
 }
 
 // Log completion for today
@@ -247,9 +311,12 @@ function logCompletion(habitId) {
     if (!habit) return;
     const today = new Date().toISOString().split('T')[0];
     if (habit.completions.includes(today)) return;
+    const prevScore = computeHabitScore(habit).golden;
     habit.completions.push(today);
     persist();
     renderHabits();
+    const newScore = computeHabitScore(habit).golden;
+    if (newScore > prevScore) spawnConfetti();
 }
 
 // Undo feature removed — completion toggles are handled via the mini calendar and log button.
