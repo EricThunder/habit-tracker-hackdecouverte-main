@@ -2,3 +2,12 @@ body {
     background-color: bisque;
     font-family: Arial
 }
+
+#header {
+    text-align: center
+}
+
+#create-habit {
+
+    text-align: center
+}
