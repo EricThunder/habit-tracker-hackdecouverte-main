@@ -87,6 +87,7 @@ function renderHabits() {
             <div class="habit-info">
                 <h3>${habit.name}</h3>
                 <p>Completions: ${habit.completions.length}</p>
+                <div class="habit-score">Points: <strong>${score.points}</strong> ⚪︎ &nbsp;/&nbsp; Golden: <strong>${score.golden}</strong> ✨</div>
             </div>
             <div class="habit-actions">
                 <button class="log-btn" data-id="${habit.id}" ${isCompletedToday ? 'disabled' : ''}>${isCompletedToday ? '✓ Completed Today' : 'Log Today'}</button>
@@ -200,17 +201,16 @@ function renderPointsSummary() {
     let totalPoints = 0;
     let totalGolden = 0;
     let globalLongest = 0;
-    const rows = habits.map(h => {
+    habits.forEach(h => {
         const score = computeHabitScore(h);
         totalPoints += score.points;
         totalGolden += score.golden;
         globalLongest = Math.max(globalLongest, score.longest || 0);
-        return `<div class="points-row"><strong>${escapeHtml(h.name)}</strong>: ${score.points} ⚪  / ${score.golden} ✨ — Longest streak: ${score.longest || 0} days</div>`;
     });
 
     container.innerHTML = `
-        <div class="points-totals">Total: <strong>${totalPoints}</strong> ⚪︎ &nbsp; / &nbsp; <strong>${totalGolden}</strong> ✨ &nbsp; &nbsp; | &nbsp; Longest streak overall: <strong>${globalLongest}</strong> days</div>
-        <div class="points-per-habit">${rows.join('')}</div>
+        <div class="points-totals">Total points: <strong>${totalPoints}</strong> ⚪︎ &nbsp; / &nbsp; Golden: <strong>${totalGolden}</strong> ✨</div>
+        <div class="points-totals">Longest streak overall: <strong>${globalLongest}</strong> days</div>
     `;
 }
 

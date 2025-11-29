@@ -116,6 +116,12 @@ body {
     opacity: 0.9;
 }
 
+.habit-score {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    color: #333;
+}
+
 .habit-actions {
     display: flex;
     gap: 10px;
