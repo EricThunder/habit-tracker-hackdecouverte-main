@@ -84,6 +84,14 @@ body {
     font-size: 0.9rem;
 }
 
+.habit-info .score {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: #333;
+    opacity: 0.9;
+}
+
 .habit-actions {
     display: flex;
     gap: 10px;

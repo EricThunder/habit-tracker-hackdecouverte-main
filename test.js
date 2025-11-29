@@ -82,6 +82,8 @@ function renderHabits() {
     const today = new Date().toISOString().split('T')[0];
     habits.forEach(habit => {
         const isCompletedToday = habit.completions.includes(today);
+        // compute points and streak for the habit from its completions
+        const score = computeHabitScore(habit);
         const habitDiv = document.createElement('div');
         habitDiv.className = 'habit-item';
         // store id on the container to make event delegation easier
@@ -89,7 +91,7 @@ function renderHabits() {
         habitDiv.innerHTML = `
             <div class="habit-info">
                 <h3>${habit.name}</h3>
-                <p>Completions: ${habit.completions.length}</p>
+                <p>Completions: ${habit.completions.length} — Points: ${score.points} ⚪︎  Golden: ${score.golden} ✨  Streak: ${score.streak}</p>
             </div>
             <div class="habit-actions">
                 <button class="log-btn" data-id="${habit.id}" ${isCompletedToday ? 'disabled' : ''}>${isCompletedToday ? '✓ Completed Today' : 'Log Today'}</button>
@@ -131,6 +133,54 @@ function getLastNDays(n) {
         days.push(d.toISOString().split('T')[0]);
     }
     return days;
+}
+
+// Helper: check if dateB is the day after dateA (both YYYY-MM-DD strings)
+function isNextDay(dateA, dateB) {
+    const a = new Date(dateA + 'T00:00:00');
+    const b = new Date(dateB + 'T00:00:00');
+    const diff = (b - a) / (1000 * 60 * 60 * 24);
+    return diff === 1;
+}
+
+// Compute total normal points, golden points and the current streak
+// Rules implemented:
+// - Every completion yields 1 base normal point.
+// - When consecutive streak (length S) >= 2, the day gives extra normal points equal to S.
+// - If the streak reaches 7, the user receives 1 golden point and the streak resets; the 7th day still gives the 1 base normal point (no extra S points applied for the 7th day).
+function computeHabitScore(habit) {
+    const dates = (habit.completions || []).slice().sort();
+    let points = 0;
+    let golden = 0;
+    let streak = 0; // streak while iterating
+    let prev = null;
+
+    for (const d of dates) {
+        if (prev && isNextDay(prev, d)) {
+            streak += 1;
+        } else {
+            streak = 1;
+        }
+
+        // award base point
+        points += 1;
+
+        if (streak === 7) {
+            // reach 7-day streak: award golden and reset streak
+            golden += 1;
+            // 7th day gives the base point (already added), but does not get the extra streak bonus
+            streak = 0; // reset streak
+        } else if (streak >= 2) {
+            // extra normal points equal to the streak size
+            points += streak;
+        }
+
+        prev = d;
+    }
+
+    // The 'current streak' that should be shown is the running streak after the latest date.
+    // Note: our logic resets to 0 if the last processed date completed a 7-day streak; that's expected.
+    return { points, golden, streak };
 }
 
 // Toggle a completion for a specific date (if present => remove, otherwise add)
