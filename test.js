@@ -47,12 +47,7 @@ function initializeDOMElements() {
                 logCompletion(habitId);
                 return;
             }
-            const undoBtn = e.target.closest('.undo-btn');
-            if (undoBtn) {
-                const habitId = Number(undoBtn.dataset.id);
-                undoCompletion(habitId);
-                return;
-            }
+            // undo button removed — calendar and log/remove handle completions now
             const calDay = e.target.closest('.cal-day');
             if (calDay) {
                 const habitEl = e.target.closest('.habit-item');
@@ -95,7 +90,7 @@ function renderHabits() {
             </div>
             <div class="habit-actions">
                 <button class="log-btn" data-id="${habit.id}" ${isCompletedToday ? 'disabled' : ''}>${isCompletedToday ? '✓ Completed Today' : 'Log Today'}</button>
-                ${isCompletedToday ? `<button class="undo-btn" data-id="${habit.id}">Undo</button>` : ''}
+                <!-- Undo removed (keep UI minimal: log / delete only) -->
 
                 <button class="delete-btn" data-id="${habit.id}">Delete</button>
             </div>
@@ -148,45 +143,49 @@ function isNextDay(dateA, dateB) {
     return (bUtc - aUtc) === 24 * 60 * 60 * 1000;
 }
 
-// Compute total normal points, golden points and the current streak
+// Compute total normal points, golden points and the longest raw streak
 // Rules implemented:
-// - Every completion yields 1 base normal point.
-// - When consecutive streak (length S) >= 2, the day gives extra normal points equal to S.
-// - If the streak reaches 7, the user receives 1 golden point and the streak resets; the 7th day still gives the 1 base normal point (no extra S points applied for the 7th day).
+// - Every completion yields 1 base normal point (no streak bonus).
+// - If a scoring streak reaches 7 consecutive days the user receives 1 golden point and the scoring streak resets.
+// - Longest streak is computed independently (raw consecutive days) and is not limited by the golden reset.
 function computeHabitScore(habit) {
     // Sort completions by chronological order using actual Date values to be robust across months
     const dates = (habit.completions || []).slice().sort((a, b) => new Date(a) - new Date(b));
     let points = 0;
     let golden = 0;
-    let streak = 0; // streak while iterating
+    let scoreStreak = 0; // current streak used for scoring (resets after 7)
+    let rawStreak = 0; // current raw consecutive-days streak (never resets at 7)
+    let longestRaw = 0; // record the longest raw consecutive streak seen
     let prev = null;
 
     for (const d of dates) {
         if (prev && isNextDay(prev, d)) {
-            streak += 1;
+            scoreStreak += 1;
+            rawStreak += 1;
         } else {
-            streak = 1;
+            scoreStreak = 1;
+            rawStreak = 1;
         }
 
         // award base point
         points += 1;
 
-        if (streak === 7) {
+        if (scoreStreak === 7) {
             // reach 7-day streak: award golden and reset streak
             golden += 1;
             // 7th day gives the base point (already added), but does not get the extra streak bonus
-            streak = 0; // reset streak
-        } else if (streak >= 2) {
-            // extra normal points equal to the streak size
-            points += streak;
+            // record 7 as a candidate for longestRaw (may be exceeded by raw streak)
+            longestRaw = Math.max(longestRaw, 7);
+            scoreStreak = 0; // reset scoring streak for golden rule
         }
-
+        // update longest raw streak
+        longestRaw = Math.max(longestRaw, rawStreak);
         prev = d;
     }
 
     // The 'current streak' that should be shown is the running streak after the latest date.
     // Note: our logic resets to 0 if the last processed date completed a 7-day streak; that's expected.
-    return { points, golden, streak };
+    return { points, golden, longest: longestRaw };
 }
 
 // Render a centralized points summary (totals + per-habit points)
@@ -200,15 +199,17 @@ function renderPointsSummary() {
 
     let totalPoints = 0;
     let totalGolden = 0;
+    let globalLongest = 0;
     const rows = habits.map(h => {
         const score = computeHabitScore(h);
         totalPoints += score.points;
         totalGolden += score.golden;
-        return `<div class="points-row"><strong>${escapeHtml(h.name)}</strong>: ${score.points} ⚪  / ${score.golden} ✨</div>`;
+        globalLongest = Math.max(globalLongest, score.longest || 0);
+        return `<div class="points-row"><strong>${escapeHtml(h.name)}</strong>: ${score.points} ⚪  / ${score.golden} ✨ — Longest streak: ${score.longest || 0} days</div>`;
     });
 
     container.innerHTML = `
-        <div class="points-totals">Total: <strong>${totalPoints}</strong> ⚪︎ &nbsp; / &nbsp; <strong>${totalGolden}</strong> ✨</div>
+        <div class="points-totals">Total: <strong>${totalPoints}</strong> ⚪︎ &nbsp; / &nbsp; <strong>${totalGolden}</strong> ✨ &nbsp; &nbsp; | &nbsp; Longest streak overall: <strong>${globalLongest}</strong> days</div>
         <div class="points-per-habit">${rows.join('')}</div>
     `;
 }
@@ -251,23 +252,7 @@ function logCompletion(habitId) {
     renderHabits();
 }
 
-// Undo today's completion for a habit (useful to fix misclicks)
-function undoCompletion(habitId) {
-    const habit = habits.find(h => h.id === habitId);
-    if (!habit) return;
-    const today = new Date().toISOString().split('T')[0];
-    const idx = habit.completions.indexOf(today);
-    if (idx === -1) {
-        // Nothing to undo
-        console.warn('No completion for today to undo for habit ID:', habitId);
-        return;
-    }
-    // Remove today's completion and update
-    habit.completions.splice(idx, 1);
-    persist();
-    renderHabits();
-    console.log('Undid today\'s completion for habit ID:', habitId);
-}
+// Undo feature removed — completion toggles are handled via the mini calendar and log button.
 
 // Delete habit by id
 function deleteHabit(habitId) {
@@ -279,7 +264,7 @@ function deleteHabit(habitId) {
         console.error('Habit not found:', habitId);
         return;
     }
-    if (!confirm('Delete this habit?')) {
+    if (!confirm('Delete this habit and its points? This cannot be undone.')) {
         console.log('User cancelled deletion');
         return;
     }
@@ -287,6 +272,8 @@ function deleteHabit(habitId) {
     habits.splice(idx, 1);
     persist();
     renderHabits();
+    // ensure the central points summary is refreshed immediately
+    renderPointsSummary();
     console.log('Habit deleted successfully. Remaining habits:', habits);
 }
 
