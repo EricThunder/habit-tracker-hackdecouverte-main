@@ -132,3 +132,12 @@ body {
 .past-btn:hover {
     background: #1976D2;
 }
+
+.undo-btn {
+    padding: 8px 15px;
+    background: purple;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
