@@ -144,6 +144,13 @@ body {
     color: #666;
 }
 
+.habit-longest {
+    margin-top: 4px;
+    font-size: 0.85rem;
+    color: #444;
+    font-weight: 600;
+}
+
 .habit-actions {
     display: flex;
     gap: 10px;

@@ -89,6 +89,7 @@ function renderHabits() {
                 <p>Completions: ${habit.completions.length}</p>
                 <div class="habit-score">Points: <strong>${score.points}</strong> ⚪︎ &nbsp;/&nbsp; Golden: <strong>${score.golden}</strong> ✨</div>
                 <div class="habit-current">Current streak: <strong>${score.current || 0}</strong> days</div>
+                <div class="habit-longest">Longest streak: <strong>${score.longest || 0}</strong> days</div>
             </div>
             <div class="habit-actions">
                 <button class="log-btn" data-id="${habit.id}" ${isCompletedToday ? 'disabled' : ''}>${isCompletedToday ? '✓ Completed Today' : 'Log Today'}</button>
@@ -185,14 +186,12 @@ function computeHabitScore(habit) {
         prev = d;
     }
 
-    // Determine the current raw streak (consecutive days including today)
-    const today = new Date().toISOString().split('T')[0];
+    // Determine the current raw streak anchored at the last logged completion
+    // (counts consecutive days ending at the most recent completion)
     let currentRaw = 0;
-    // if there are no completions, current stays 0
-    const set = new Set(dates);
-    if (set.has(today)) {
-        // count backwards from today until a missing day
-        let d = new Date(today + 'T00:00:00');
+    if (dates.length > 0) {
+        const set = new Set(dates);
+        let d = new Date(dates[dates.length - 1] + 'T00:00:00');
         while (true) {
             const dateStr = d.toISOString().split('T')[0];
             if (!set.has(dateStr)) break;
@@ -223,30 +222,13 @@ function renderPointsSummary() {
         globalLongest = Math.max(globalLongest, score.longest || 0);
     });
 
-    const overallCurrent = computeOverallCurrentStreak();
     container.innerHTML = `
         <div class="points-totals">Total points: <strong>${totalPoints}</strong> ⚪︎ &nbsp; / &nbsp; Golden: <strong>${totalGolden}</strong> ✨</div>
-        <div class="points-totals">Current streak overall: <strong>${overallCurrent}</strong> days</div>
-        <div class="points-totals">Longest streak overall: <strong>${globalLongest}</strong> days</div>
     `;
 }
 
 // Compute the overall current raw streak across all habits (consecutive days up to today where at least one completion exists)
-function computeOverallCurrentStreak() {
-    const allDates = new Set();
-    habits.forEach(h => (h.completions || []).forEach(d => allDates.add(d)));
-    if (allDates.size === 0) return 0;
-    const today = new Date().toISOString().split('T')[0];
-    let streak = 0;
-    let d = new Date(today + 'T00:00:00');
-    while (true) {
-        const dateStr = d.toISOString().split('T')[0];
-        if (!allDates.has(dateStr)) break;
-        streak += 1;
-        d.setDate(d.getDate() - 1);
-    }
-    return streak;
-}
+// computeOverallCurrentStreak removed — summary no longer displays overall current streak
 
 // Small HTML escape for habit names when injecting into summary
 function escapeHtml(s) {
